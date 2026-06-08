@@ -53,6 +53,7 @@ Cached Network Image
 
 📁 Project Structure
 
+```text
 lib/
 │
 ├── main.dart
@@ -73,6 +74,7 @@ lib/
     ├── channel_card.dart
     ├── loading_error_widget.dart
     └── search_box.dart
+```
 
 ---
 
