@@ -41,13 +41,14 @@ Download Here => https://drive.google.com/file/d/1zHaqspriSjIgRFVE6Pwa3SpCbMEqTF
 ---
 
 🛠️ Built With
-Flutter
-Dart
-Material 3
-Chewie
-Video Player
-HTTP
-Cached Network Image
+
+- Flutter
+- Dart
+- Material 3
+- Chewie
+- Video Player
+- HTTP
+- Cached Network Image
 
 ---
 
