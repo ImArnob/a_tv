@@ -50,12 +50,7 @@ class IPTVService {
 
       if (isStreamLine) {
         channels.add(
-          Channel(
-            name: name,
-            logo: logo,
-            category: category,
-            streamUrl: line,
-          ),
+          Channel(name: name, logo: logo, category: category, streamUrl: line),
         );
 
         name = 'Unknown Channel';

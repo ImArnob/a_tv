@@ -1,10 +1,10 @@
-import 'package:a_tv/models/channel_model.dart';
+import 'package:a_tv/category_drawer.dart';
 import 'package:a_tv/services/iptv_service.dart';
 import 'package:a_tv/widgets/channel_card.dart';
 import 'package:a_tv/widgets/loading_error_widget.dart';
 import 'package:a_tv/widgets/search_box.dart';
 import 'package:flutter/material.dart';
-
+import 'package:a_tv/models/channel_model.dart';
 
 enum LoadState { loading, success, error }
 
@@ -18,6 +18,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Channel> allChannels = [];
   List<Channel> filteredChannels = [];
+  List<String> categories = ['All Channels'];
+
+  String selectedCategory = 'All Channels';
+  String searchQuery = '';
 
   LoadState loadState = LoadState.loading;
 
@@ -35,8 +39,19 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final channels = await IPTVService.fetchChannels();
 
+      final uniqueCategories = channels
+          .map((channel) => channel.category.trim())
+          .where((category) => category.isNotEmpty)
+          .toSet()
+          .toList();
+
+      uniqueCategories.sort();
+
       setState(() {
         allChannels = channels;
+        categories = ['All Channels', ...uniqueCategories];
+        selectedCategory = 'All Channels';
+        searchQuery = '';
         filteredChannels = channels;
         loadState = LoadState.success;
       });
@@ -47,19 +62,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void searchChannel(String query) {
-    final input = query.toLowerCase().trim();
+  void applyFilters() {
+    final input = searchQuery.toLowerCase().trim();
 
     final result = allChannels.where((channel) {
-      final name = channel.name.toLowerCase();
-      final category = channel.category.toLowerCase();
+      final matchesCategory =
+          selectedCategory == 'All Channels' ||
+          channel.category.toLowerCase() == selectedCategory.toLowerCase();
 
-      return name.contains(input) || category.contains(input);
+      final matchesSearch =
+          input.isEmpty ||
+          channel.name.toLowerCase().contains(input) ||
+          channel.category.toLowerCase().contains(input);
+
+      return matchesCategory && matchesSearch;
     }).toList();
 
     setState(() {
       filteredChannels = result;
     });
+  }
+
+  void searchChannel(String query) {
+    searchQuery = query;
+    applyFilters();
+  }
+
+  void selectCategory(String category) {
+    selectedCategory = category;
+    applyFilters();
   }
 
   int getCrossAxisCount(double width) {
@@ -86,6 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: CategoryDrawer(
+        categories: categories,
+        selectedCategory: selectedCategory,
+        onCategorySelected: selectCategory,
+      ),
       body: RefreshIndicator(
         onRefresh: loadChannels,
         child: LayoutBuilder(
@@ -102,11 +138,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   expandedHeight: width < 360 ? 170 : 210,
                   pinned: true,
                   backgroundColor: const Color(0xff111827),
+                  leading: Builder(
+                    builder: (context) {
+                      return IconButton(
+                        icon: const Icon(Icons.menu_rounded),
+                        onPressed: () {
+                          Scaffold.of(context).openDrawer();
+                        },
+                      );
+                    },
+                  ),
+                  title: Text(
+                    selectedCategory == 'All Channels'
+                        ? 'Live TV'
+                        : selectedCategory,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   flexibleSpace: FlexibleSpaceBar(
-                    title: const Text(
-                      'Live TV',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
                     background: Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -136,11 +186,70 @@ class _HomeScreenState extends State<HomeScreen> {
                       horizontalPadding,
                       16,
                       horizontalPadding,
-                      12,
+                      8,
                     ),
                     child: SearchBox(onChanged: searchChannel),
                   ),
                 ),
+
+                if (loadState == LoadState.success)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        12,
+                      ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xff111827),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.category_rounded,
+                                    size: 16,
+                                    color: Colors.redAccent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      selectedCategory,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            '${filteredChannels.length} channels',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 if (loadState == LoadState.loading)
                   const SliverFillRemaining(
